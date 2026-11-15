@@ -127,6 +127,45 @@ class VideoService:
         }
 
     @staticmethod
+    def _build_whole_clip_segment(
+        video_duration: float,
+        transcript: str,
+        ai_segments: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """One segment covering the whole (short) source, keeping the AI's best hook and scores."""
+        best: Dict[str, Any] = {}
+        if ai_segments:
+            best = max(ai_segments, key=lambda s: s.get("virality_score") or 0)
+
+        transcript_preview = " ".join((transcript or "").split())
+        segment = dict(best)
+        segment.update(
+            {
+                "start_time": "00:00",
+                # Floor so the clip never ends past the last frame of the source.
+                "end_time": seconds_to_mmss(max(1, math.floor(video_duration))),
+                "text": segment.get("text") or transcript_preview[:240],
+                "relevance_score": segment.get("relevance_score", 0.5),
+                "reasoning": segment.get("reasoning")
+                or "The source is already a short clip, so it is rendered whole.",
+                "hook_start_time": None,
+                "hook_end_time": None,
+            }
+        )
+        for key in (
+            "virality_score",
+            "hook_score",
+            "engagement_score",
+            "value_score",
+            "shareability_score",
+        ):
+            segment.setdefault(key, 0)
+        segment.setdefault("hook_type", "whole_clip")
+        segment.setdefault("hook_title", None)
+        segment.setdefault("hashtags", [])
+        return segment
+
+    @staticmethod
     def resolve_local_video_path(url: str) -> Path:
         """Resolve uploaded-video references without exposing server filesystem paths."""
         stream = get_stream_source(url)
@@ -617,6 +656,19 @@ class VideoService:
                     transcript_data,
                 )
                 segments_json.append(segment_payload)
+
+            whole_clip_max = getattr(runtime_config, "whole_clip_max_seconds", 0) or 0
+            if whole_clip_max > 0 and file_duration and 0 < file_duration <= whole_clip_max:
+                logger.info(
+                    "Source is %.1fs (<= %ss): rendering it whole as one clip",
+                    file_duration,
+                    whole_clip_max,
+                )
+                segments_json = [
+                    VideoService._build_whole_clip_segment(
+                        file_duration, transcript, segments_json
+                    )
+                ]
 
             if not segments_json:
                 logger.warning(

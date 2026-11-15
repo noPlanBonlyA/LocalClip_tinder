@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0e0f13" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Clip Tinder" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>Clip Tinder</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- Login -->
+    <main id="login" class="login" hidden>
+      <form id="login-form" class="login-card">
+        <div class="brand big"><span class="brand-dot"></span>Clip Tinder</div>
+        <p class="muted">Свайпаем клипы из Google Диска: вправо — на монтаж, влево — в trash.</p>
+        <label>Имя<input name="name" autocomplete="nickname" required maxlength="40" placeholder="Как вас подписывать в истории" /></label>
+        <label>Пароль<input name="password" type="password" autocomplete="current-password" required /></label>
+        <button class="btn primary" type="submit">Войти</button>
+        <p id="login-error" class="error" role="alert"></p>
+      </form>
+    </main>
+
+    <!-- App -->
+    <div id="app" class="app" hidden>
+      <header class="topbar">
+        <div class="brand"><span class="brand-dot"></span>Clip Tinder</div>
+        <button id="refresh" class="icon-btn" title="Перечитать Google Диск" aria-label="Обновить">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        </button>
+      </header>
+
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="new" class="tab active">Оценка <b data-count="new">0</b></button>
+        <button role="tab" data-tab="maybe" class="tab">Подумать <b data-count="maybe">0</b></button>
+        <button role="tab" data-tab="jobs" class="tab">Монтаж <b data-count="jobs">0</b></button>
+        <button role="tab" data-tab="trash" class="tab">Корзина</button>
+      </nav>
+
+      <div id="streamers" class="chips" aria-label="Стример"></div>
+
+      <section id="deck-view" class="deck-view">
+        <div id="deck" class="deck" aria-live="polite"></div>
+        <div class="actions">
+          <button id="btn-left" class="round no" aria-label="Удалить (влево)" title="Удалить — ←">
+            <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>
+          </button>
+          <button id="btn-maybe" class="round maybe" aria-label="На подумать" title="На подумать — ↑">
+            <span aria-hidden="true">🤔</span>
+          </button>
+          <button id="btn-right" class="round yes" aria-label="На монтаж (вправо)" title="На монтаж — →">
+            <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M9 16.17 5.53 12.7a1 1 0 0 0-1.41 1.41l4.18 4.18a1 1 0 0 0 1.41 0L20.29 7.71a1 1 0 0 0-1.41-1.41z"/></svg>
+          </button>
+        </div>
+        <p class="hint desktop-only">← удалить · ↑ подумать · → монтаж · пробел — пауза · M — звук</p>
+      </section>
+
+      <section id="list-view" class="list-view" hidden></section>
+
+      <div id="toast" class="toast" hidden>
+        <span id="toast-text"></span>
+        <button id="toast-undo" class="btn ghost small">Отменить</button>
+      </div>
+      <div id="status-line" class="status-line"></div>
+    </div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

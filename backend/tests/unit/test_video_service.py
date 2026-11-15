@@ -88,6 +88,33 @@ async def test_process_video_complete_uses_fallback_when_ai_selects_no_segments(
     assert analysis["most_relevant_segments"] == result["segments_to_render"]
 
 
+def test_whole_clip_segment_covers_source_and_keeps_best_hook():
+    segment = VideoService._build_whole_clip_segment(
+        47.6,
+        "[00:00 - 00:47] whole thing",
+        [
+            {"start_time": "00:05", "end_time": "00:20", "virality_score": 40, "hook_title": "meh"},
+            {"start_time": "00:10", "end_time": "00:40", "virality_score": 80, "hook_title": "Best",
+             "hook_start_time": "00:10", "hook_end_time": "00:12"},
+        ],
+    )
+
+    assert segment["start_time"] == "00:00"
+    assert segment["end_time"] == "00:47"  # floored, never past the last frame
+    assert segment["hook_title"] == "Best"
+    assert segment["virality_score"] == 80
+    assert segment["hook_start_time"] is None
+
+
+def test_whole_clip_segment_without_ai_segments():
+    segment = VideoService._build_whole_clip_segment(12.0, "hi there", [])
+
+    assert (segment["start_time"], segment["end_time"]) == ("00:00", "00:12")
+    assert segment["hook_type"] == "whole_clip"
+    assert segment["hook_title"] is None
+    assert segment["text"] == "hi there"
+
+
 def test_fallback_segment_caps_to_video_duration():
     segment = VideoService._build_fallback_segment(
         video_duration=12.0,

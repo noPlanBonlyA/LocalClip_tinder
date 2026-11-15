@@ -102,6 +102,9 @@ class Config:
         self.output_dir = os.getenv("OUTPUT_DIR", "outputs")
 
         self.clip_duration = int(os.getenv("CLIP_DURATION", "30"))  # seconds
+        # Sources up to this length are already a clip: render them whole as one clip instead of
+        # letting the AI cut moments out of them (the AI still writes the hook title). 0 = off.
+        self.whole_clip_max_seconds = int(os.getenv("WHOLE_CLIP_MAX_SECONDS", "120"))
 
         self.temp_dir = os.getenv("TEMP_DIR", "temp")
 
