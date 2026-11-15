@@ -9,6 +9,7 @@ import assemblyai as aai
 from ..config import get_config
 import httpx
 import json
+import os
 import re
 import time
 from .common import (
@@ -171,13 +172,37 @@ def _assemblyai_speech_models_value(speech_model: str) -> List[str]:
     return ["universal-3-pro", "universal-2"]
 
 
-WHISPER_GPU_BATCH_SIZE = 16  # lower it if a small GPU runs out of VRAM
+# Lower it (WHISPER_GPU_BATCH_SIZE env) if a small GPU runs out of VRAM.
+WHISPER_GPU_BATCH_SIZE = int(os.getenv("WHISPER_GPU_BATCH_SIZE", "16") or 16)
 
 
 def _whisper_on_gpu() -> bool:
     import ctranslate2
 
     return ctranslate2.get_cuda_device_count() > 0
+
+
+# Best first. Older GPUs (e.g. GTX 10xx, Pascal) have no fast float16 and fail on it, but run int8.
+_GPU_COMPUTE_PREFERENCE = ("float16", "int8_float16", "int8_float32", "int8", "float32")
+
+
+def _whisper_compute_type(cuda: bool) -> str:
+    """WHISPER_COMPUTE_TYPE if set, else the fastest type this device supports."""
+    override = os.getenv("WHISPER_COMPUTE_TYPE", "").strip()
+    if override:
+        return override
+    if not cuda:
+        return "int8"
+    import ctranslate2
+
+    try:
+        supported = set(ctranslate2.get_supported_compute_types("cuda"))
+    except Exception:  # pragma: no cover - very old ctranslate2
+        return "float16"
+    for compute_type in _GPU_COMPUTE_PREFERENCE:
+        if compute_type in supported:
+            return compute_type
+    return "float32"
 
 
 def _get_whisper_model(model_name: str = "base"):
@@ -190,11 +215,14 @@ def _get_whisper_model(model_name: str = "base"):
         import ctranslate2
 
         cuda = ctranslate2.get_cuda_device_count() > 0
-        logger.info("Loading Whisper model: %s on %s", model_name, "GPU" if cuda else "CPU")
+        compute_type = _whisper_compute_type(cuda)
+        logger.info(
+            "Loading Whisper model: %s on %s (%s)", model_name, "GPU" if cuda else "CPU", compute_type
+        )
         _WHISPER_MODEL_CACHE[model_name] = _whisper.WhisperModel(
             model_name,
             device="cuda" if cuda else "cpu",
-            compute_type="float16" if cuda else "int8",
+            compute_type=compute_type,
         )
     return _WHISPER_MODEL_CACHE[model_name]
 
