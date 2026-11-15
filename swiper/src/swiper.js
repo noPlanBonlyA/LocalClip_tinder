@@ -25,6 +25,7 @@ export function clipView(clip) {
     outputs: clip.outputs || [],
     crmTicketId: clip.crmTicketId || null,
     decidedAt: clip.decidedAt || null,
+    montageMode: clip.montageMode || null,
     history: (clip.history || []).slice(-10),
   };
 }
@@ -193,8 +194,14 @@ export class Swiper {
       throw httpError(409, `Клип уже обработан (${clip.status})`);
     }
     const decidedAt = new Date().toISOString();
-    if (action === 'right') {
-      this.store.update(id, { status: 'queued', decidedAt, error: null, progress: null }, '👍 на монтаж', by);
+    if (action === 'right' || action === 'full') {
+      const montageMode = action === 'full' ? 'full' : 'cut';
+      this.store.update(
+        id,
+        { status: 'queued', montageMode, decidedAt, error: null, progress: null },
+        montageMode === 'full' ? '👍 на монтаж целиком' : '👍 на монтаж (сокращённый)',
+        by,
+      );
       this.wakeWorker();
     } else if (action === 'left') {
       const { trash } = await this.folders();
@@ -204,7 +211,7 @@ export class Swiper {
     } else if (action === 'maybe') {
       this.store.update(id, { status: 'maybe', decidedAt }, '🤔 на подумать', by);
     } else {
-      throw httpError(400, 'action: right | left | maybe');
+      throw httpError(400, 'action: right | full | left | maybe');
     }
     this.pushCrm(id);
     return clipView(this.store.get(id));
@@ -377,7 +384,9 @@ export class Swiper {
         await this.drive.download(id, src);
         this.setProgress(id, { percent: 8, message: 'Загружаю в LocalClip…' });
         const videoPath = await this.localclip.upload(src, safeFileName(clip.name));
-        const taskId = await this.localclip.createTask(videoPath, `${clip.streamer}: ${clip.name}`);
+        const taskId = await this.localclip.createTask(videoPath, `${clip.streamer}: ${clip.name}`, {
+          mode: clip.montageMode || 'cut',
+        });
         clip = this.store.update(id, { localclipTaskId: taskId }, `задача LocalClip ${taskId}`);
         rmSync(src, { force: true });
       }
@@ -412,7 +421,8 @@ export class Swiper {
         this.setProgress(id, { percent: 92, message: `Выгружаю на Google Диск (${i + 1}/${clips.length})…` });
         const local = path.join(work, `out-${i}.mp4`);
         await this.localclip.downloadClip(taskId, out.id, local);
-        const name = safeFileName(clips.length > 1 ? `${base} (${i + 1}).mp4` : `${base}.mp4`);
+        const suffix = clip.montageMode === 'full' ? ' (целиком)' : '';
+        const name = safeFileName(clips.length > 1 ? `${base}${suffix} (${i + 1}).mp4` : `${base}${suffix}.mp4`);
         const file = await this.drive.upload(local, { name, parentId: target });
         rmSync(local, { force: true });
         outputs.push({

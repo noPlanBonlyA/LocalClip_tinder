@@ -154,7 +154,7 @@ function renderDeck() {
   const ids = clips.map((c) => c.id).join(',') + `|${S.tab}`;
   const deck = $('#deck');
   const enabled = clips.length > 0;
-  for (const id of ['#btn-left', '#btn-right', '#btn-maybe']) $(id).disabled = !enabled;
+  for (const id of ['#btn-left', '#btn-right', '#btn-maybe', '#btn-full']) $(id).disabled = !enabled;
   $('#btn-maybe').title = S.tab === 'maybe' ? 'Пропустить (оставить на подумать)' : 'На подумать — ↑';
   if (ids === S.deckIds) return; // keep playing videos untouched between polls
   S.deckIds = ids;
@@ -319,14 +319,14 @@ function attachDrag(card) {
   card.addEventListener('pointercancel', end);
 }
 
-const LABELS = { right: '✅ На монтаж', left: '🗑 В корзину', maybe: '🤔 На подумать' };
+const LABELS = { right: '✅ На монтаж (сокращённый)', full: '⏱ На монтаж целиком', left: '🗑 В корзину', maybe: '🤔 На подумать' };
 
 async function decide(action) {
   const card = topCard();
   if (!card) return;
   const id = card.dataset.id;
   const clip = [...S.data.queue, ...S.data.maybe].find((c) => c.id === id);
-  const fly = { right: 'translate(140%, 0) rotate(24deg)', left: 'translate(-140%, 0) rotate(-24deg)', maybe: 'translate(0, -130%)' }[action];
+  const fly = { right: 'translate(140%, 0) rotate(24deg)', full: 'translate(140%, -20%) rotate(18deg)', left: 'translate(-140%, 0) rotate(-24deg)', maybe: 'translate(0, -130%)' }[action];
   card.style.transform = fly;
   card.style.opacity = '0';
   $('video', card).pause();
@@ -412,7 +412,18 @@ function row(c) {
     ),
     el(
       'div',
-      { className: 'row-sub', textContent: [c.streamer, fmtDur(c.durationMs), fmtTime(c.decidedAt), c.crmTicketId ? `тикет #${c.crmTicketId}` : null].filter(Boolean).join(' · ') },
+      {
+        className: 'row-sub',
+        textContent: [
+          c.streamer,
+          fmtDur(c.durationMs),
+          c.montageMode === 'full' ? 'целиком' : c.montageMode === 'cut' ? 'сокращённый' : null,
+          fmtTime(c.decidedAt),
+          c.crmTicketId ? `тикет #${c.crmTicketId}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      },
     ),
   ];
   if (c.status === 'processing' || c.status === 'queued') {
@@ -489,13 +500,15 @@ document.querySelectorAll('.tab').forEach((t) =>
 $('#refresh').addEventListener('click', () => refresh({ sync: true }));
 $('#btn-left').addEventListener('click', () => decide('left'));
 $('#btn-right').addEventListener('click', () => decide('right'));
+$('#btn-full').addEventListener('click', () => decide('full'));
 $('#btn-maybe').addEventListener('click', () => decide('maybe'));
 
 document.addEventListener('keydown', (e) => {
   if ($('#app').hidden || e.target.closest('input')) return;
   const deckTab = S.tab === 'new' || S.tab === 'maybe';
   if (!deckTab) return;
-  if (e.key === 'ArrowRight') decide('right');
+  if (e.key === 'ArrowRight') decide(e.shiftKey ? 'full' : 'right');
+  else if (e.key === 'f' || e.key === 'а') decide('full');
   else if (e.key === 'ArrowLeft') decide('left');
   else if (e.key === 'ArrowUp') decide('maybe');
   else if (e.key === 'm' || e.key === 'ь') setMuted(!S.muted);

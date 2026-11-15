@@ -108,12 +108,19 @@ export class LocalClip {
     return body.video_path; // "upload://<uuid>.mp4"
   }
 
-  async createTask(videoPath, title) {
+  /**
+   * mode "cut" (default): LocalClip cuts pauses > 0.7s and filler words — a short, punchy edit.
+   * mode "full": keep the whole length (no pause / filler cutting).
+   */
+  async createTask(videoPath, title, { mode = 'cut' } = {}) {
+    const full = mode === 'full';
     const body = await this.call('POST', '/tasks/', {
       json: {
         output_format: 'vertical',
         add_subtitles: true,
         ...this.taskOptions,
+        cut_long_pauses: !full,
+        remove_filler_words: !full,
         source: { url: videoPath, title },
       },
     });

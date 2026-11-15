@@ -142,6 +142,9 @@ test('swipe right: LocalClip renders, result lands in montage/<streamer>, ticket
   const task = fakes.tasks.get(done.localclipTaskId);
   assert.match(task.body.source.url, /^upload:\/\//);
   assert.equal(task.body.output_format, 'vertical');
+  // default swipe right = short edit: LocalClip cuts pauses and filler words
+  assert.equal(task.body.cut_long_pauses, true);
+  assert.equal(task.body.remove_filler_words, true);
 
   const t = fakes.tickets.get(done.crmTicketId);
   assert.equal(t.status, 'UNIQUIFIED');
@@ -211,6 +214,30 @@ test('a later CRM sync does not add the videos twice or move the ticket back', a
   await swiper.pushCrm(done.id);
   assert.equal(t.status, 'POSTED');
   assert.equal(t.videos.length, 1);
+});
+
+test('"целиком" montage keeps the full length and is named "(целиком)"', async () => {
+  const folder = byName('минус-4.mp4').streamerFolderId;
+  // the original минус-4 now lives in montage/…/исходники, so add a fresh clip to to sort/sasavot
+  const toSort = [...fakes.files.values()].find((f) => f.name === 'to sort').id;
+  const sasavot = [...fakes.files.values()].find((f) => f.name === 'sasavot' && f.parents[0] === toSort).id;
+  assert.equal(folder, sasavot);
+  fakes.addFile({ name: 'долгий-замес.mp4', parent: sasavot, content: Buffer.from('video:long') });
+  await swiper.sync();
+  const clip = byName('долгий-замес.mp4');
+  await swiper.decide(clip.id, 'full', 'Андрей');
+  assert.equal(byName('долгий-замес.mp4').montageMode, 'full');
+  await swiper.montage(clip.id);
+  await settle();
+  const done = byName('долгий-замес.mp4');
+  const task = fakes.tasks.get(done.localclipTaskId);
+  assert.equal(task.body.cut_long_pauses, false);
+  assert.equal(task.body.remove_filler_words, false);
+  assert.equal(fakes.pathOf(done.outputs[0].driveId), 'montage/sasavot/долгий-замес (целиком).mp4');
+  const t = fakes.tickets.get(done.crmTicketId);
+  assert.equal(t.status, 'UNIQUIFIED');
+  assert.match(t.notes, /Монтаж: целиком/);
+  assert.match(t.notes, /на монтаж целиком \(Андрей\)/);
 });
 
 test('files removed from "to sort" by hand are marked gone', async () => {

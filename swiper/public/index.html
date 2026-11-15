@@ -53,11 +53,14 @@
           <button id="btn-maybe" class="round maybe" aria-label="На подумать" title="На подумать — ↑">
             <span aria-hidden="true">🤔</span>
           </button>
-          <button id="btn-right" class="round yes" aria-label="На монтаж (вправо)" title="На монтаж — →">
+          <button id="btn-full" class="round full" aria-label="На монтаж целиком, без сокращения" title="Целиком, по полному хронометражу — Shift+→">
+            <span aria-hidden="true">⏱</span><small>целиком</small>
+          </button>
+          <button id="btn-right" class="round yes" aria-label="На монтаж (вправо)" title="На монтаж, сокращённый (паузы вырезаются) — →">
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M9 16.17 5.53 12.7a1 1 0 0 0-1.41 1.41l4.18 4.18a1 1 0 0 0 1.41 0L20.29 7.71a1 1 0 0 0-1.41-1.41z"/></svg>
           </button>
         </div>
-        <p class="hint desktop-only">← удалить · ↑ подумать · → монтаж · пробел — пауза · M — звук</p>
+        <p class="hint desktop-only">← удалить · ↑ подумать · → монтаж (сокращённый) · Shift+→ целиком · пробел — пауза · M — звук</p>
       </section>
 
       <section id="list-view" class="list-view" hidden></section>

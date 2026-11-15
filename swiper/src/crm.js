@@ -136,6 +136,7 @@ export function ticketNotes(clip) {
     `Исходник: ${clip.webViewLink}`,
   ];
   if (clip.folderLink) lines.push(`Папка: ${clip.folderLink}`);
+  if (clip.montageMode) lines.push(`Монтаж: ${clip.montageMode === 'full' ? 'целиком, без вырезания пауз' : 'сокращённый (паузы вырезаны)'}`);
   if (clip.outputs?.length) {
     lines.push('', 'Смонтировано:');
     for (const o of clip.outputs) {
