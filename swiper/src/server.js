@@ -97,7 +97,7 @@ async function readJson(req) {
 }
 
 async function serveStatic(req, res, pathname) {
-  const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const rel = pathname === '/' ? 'index.html' : pathname === '/privacy' ? 'privacy.html' : pathname.slice(1);
   const file = path.normalize(path.join(PUBLIC, rel));
   if (!file.startsWith(PUBLIC + path.sep)) return send(res, 404, { message: 'Not found' });
   try {
